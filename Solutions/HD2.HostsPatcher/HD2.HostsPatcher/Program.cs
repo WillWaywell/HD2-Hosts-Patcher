@@ -53,13 +53,19 @@ namespace HD2.HostsPatcher
             try
             {
                 // Retrieve host address from remote
-                Console.WriteLine("Retrieving host data...");
+                Console.WriteLine("Retrieving host data");
                 WebClient wc = new WebClient();
                 byte[] dataBuffer = wc.DownloadData("https://raw.githubusercontent.com/WillWaywell/hd2-hosts-patcher/master/host");
                 IPAddress hostAddress = IPAddress.Parse(Encoding.UTF8.GetString(dataBuffer));
 
-                List<string> lines = new List<String>(File.ReadAllLines(hostsFile));
+                // Check hosts file exists
+                
+
+                // Read hosts file
+                List<string> lines = new List<string>();
                 bool updateHosts = false;
+                if (File.Exists(hostsFile))
+                    lines.AddRange(File.ReadAllLines(hostsFile));
 
                 // Check existing entries
                 for (int i = 0; i < lines.Count; i++)
@@ -90,28 +96,35 @@ namespace HD2.HostsPatcher
                         updateHosts = true;
                         Console.WriteLine("Append: {0}", host.HostName);
                     }
+                    else if (!host.HasValidIP)
+                    {
+                        lines[host.Index] = String.Format("{0} {1}", hostAddress, host.HostName);
+                        updateHosts = true;
+                        Console.WriteLine("Update: {0}", host.HostName);
+                    }
                     else
                     {
-                        if (!host.HasValidIP)
-                        {
-                            lines[host.Index] = String.Format("{0} {1}", hostAddress, host.HostName);
-                            updateHosts = true;
-                            Console.WriteLine("Update: {0}", host.HostName);
-                        };
+                        Console.WriteLine("Pass");
                     }
                 }
 
                 if (updateHosts)
                 {
+                    Console.WriteLine("Saving hosts mappings");
                     File.WriteAllLines(hostsFile, lines);
+                    Console.WriteLine("Flushing DNS cache");
                     DnsFlushResolverCache();
                 }
 
+                Console.ForegroundColor = ConsoleColor.Cyan;
                 Console.WriteLine("Patching complete");
+                Console.ForegroundColor = ConsoleColor.White;
             }
             catch (Exception ex)
             {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write(ex.Message);
+                Console.ForegroundColor = ConsoleColor.White;
             }
         }
     }
